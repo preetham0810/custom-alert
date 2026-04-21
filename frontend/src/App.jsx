@@ -103,6 +103,21 @@ export default function App() {
   const socketRef = useRef(null);
   const prevAlertIds = useRef(new Set());
 
+  // Listen for service worker push messages → play sound in background tab
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const handler = event => {
+      if (event.data?.type === 'PLAY_ALERT') {
+        playAlertSound(event.data.severity);
+        if (navigator.vibrate) {
+          navigator.vibrate(event.data.severity === 'P1' ? [400,100,400,100,400] : [200,100,200]);
+        }
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
+    return () => navigator.serviceWorker.removeEventListener('message', handler);
+  }, []);
+
   useEffect(() => {
     const socket = io(BACKEND);
     socketRef.current = socket;
