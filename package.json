@@ -2,7 +2,7 @@
   "name": "custom-alert",
   "version": "1.0.0",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd frontend && npm install && VITE_BACKEND_URL='' npm run build",
     "start": "cd backend && npm install && node server.js"
   }
 }

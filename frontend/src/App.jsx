@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || window.location.origin;
 
 function useIOSInstallBanner() {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
