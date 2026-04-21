@@ -3,6 +3,13 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
+const webpush = require('web-push');
+
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC  || 'BHXlMWalLmwDyzpqUObvp5fdFZu83bLWl94Mw5PidOcxGCgSlr8rFdXOVyUmK066qnL--kMTf5R3mAJE6MwpfMM';
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE || 'Q1QzZpORAyxyrXWEbE6q0OoJ8HiNCps4JG6aJ5Mq-S8';
+webpush.setVapidDetails('mailto:admin@company.com', VAPID_PUBLIC, VAPID_PRIVATE);
+
+const pushSubscriptions = [];
 
 const app = express();
 const server = http.createServer(app);
@@ -17,6 +24,17 @@ const oncall = { name: 'John Doe', email: 'john@company.com' };
 
 function broadcastAlerts() {
   io.emit('alerts', alerts);
+}
+
+async function sendWebPush(alert) {
+  const payload = JSON.stringify({
+    title: `${alert.severity} — ${alert.title}`,
+    body: alert.description,
+    data: { alertId: alert.id }
+  });
+  for (const sub of pushSubscriptions) {
+    webpush.sendNotification(sub, payload).catch(() => {});
+  }
 }
 
 function createAlert({ severity, title, description, source }) {
@@ -34,6 +52,7 @@ function createAlert({ severity, title, description, source }) {
   };
   alerts.unshift(alert);
   broadcastAlerts();
+  sendWebPush(alert);
   console.log(`[ALERT] ${alert.severity} - ${alert.title}`);
   return alert;
 }
@@ -50,6 +69,17 @@ app.put('/api/oncall', (req, res) => {
   if (email) oncall.email = email;
   io.emit('oncall', oncall);
   res.json(oncall);
+});
+
+// Web Push
+app.get('/api/vapid-public-key', (_req, res) => res.json({ key: VAPID_PUBLIC }));
+
+app.post('/api/push-subscribe', (req, res) => {
+  const sub = req.body;
+  const exists = pushSubscriptions.find(s => s.endpoint === sub.endpoint);
+  if (!exists) pushSubscriptions.push(sub);
+  console.log('Push subscriber added, total:', pushSubscriptions.length);
+  res.json({ ok: true });
 });
 
 // ServiceNow webhook

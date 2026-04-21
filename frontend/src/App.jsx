@@ -55,9 +55,29 @@ function playAlertSound(severity) {
   }
 }
 
+async function registerPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') return;
+
+  const reg = await navigator.serviceWorker.register('/sw.js');
+  await navigator.serviceWorker.ready;
+
+  const { key } = await fetch('/api/vapid-public-key').then(r => r.json());
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: key,
+  });
+  await fetch('/api/push-subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sub),
+  });
+}
+
 function requestNotificationPermission() {
   if (!('Notification' in window)) return Promise.resolve('denied');
-  return Notification.requestPermission();
+  return registerPush();
 }
 
 function sendBrowserNotification(alert) {
