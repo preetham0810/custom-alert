@@ -10,7 +10,6 @@ self.addEventListener('push', event => {
     tag: data.data?.alertId || 'alert',
     requireInteraction: isP1,
     vibrate: isP1 ? [400, 100, 400, 100, 400] : [200, 100, 200],
-    silent: true, // suppress OS default sound — we play our own
   };
 
   event.waitUntil(
